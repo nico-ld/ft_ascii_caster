@@ -5,13 +5,17 @@ CFLAGS   = -Wall -Wextra -Werror
 IFLAGS   = -I includes
 LFLAGS   = -lm
 
-SRCS     = src/main.c \
+SRCS     = src/main.c      \
            src/parse_map.c \
-           src/utils.c
+           src/utils.c     \
+           src/term.c      \
+           src/screen.c    \
+           src/input.c     \
+           src/render.c    \
+           src/game.c
 
 OBJS     = $(SRCS:.c=.o)
 
-# ── Rules ────────────────────────────────────────────────
 all: $(NAME)
 
 $(NAME): $(OBJS)

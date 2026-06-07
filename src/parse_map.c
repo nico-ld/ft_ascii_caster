@@ -218,26 +218,37 @@ static int	validate_no_empty_lines(t_map *map, const char **err_msg)
 }
 
 /*
-** cell_at – safely returns the character at (x, y), or '1' if out of bounds
-** (treated as a virtual wall so boundary checks simplify).
+** cell_at – returns the character at (x, y).
+** Returns VOID_CELL (' ') for anything outside the grid or beyond the end
+** of a shorter row.  Space is never a valid map character, so callers can
+** treat it unambiguously as "the void".
 */
+# define VOID_CELL ' '
+
 static char	cell_at(t_map *map, int x, int y)
 {
 	if (y < 0 || y >= map->height)
-		return ('1');
+		return (VOID_CELL);
 	if (x < 0 || x >= ft_strlen(map->grid[y]))
-		return ('1');
+		return (VOID_CELL);
 	return (map->grid[y][x]);
 }
 
 /*
-** validate_closed – every floor/player cell must be completely surrounded
-** by walls or other floor/player cells (no opening to the void).
-** A cell is "open" if any of its 4 orthogonal neighbours is outside the map
-** (empty string boundary or beyond grid height) AND is not a wall.
-** We implement this with a simple flood-check:
-**   For every non-wall cell, all 4 direct neighbours must not be '\0' or
-**   out of the grid.
+** is_void – returns 1 if c represents empty space outside the map boundary.
+*/
+static int	is_void(char c)
+{
+	return (c == VOID_CELL);
+}
+
+/*
+** validate_closed – every non-wall cell must have all 4 orthogonal neighbours
+** be a valid map character ('0', '1', or player).  A VOID_CELL neighbour means
+** the cell is exposed to the outside of the map, which is forbidden.
+**
+** This correctly handles jagged rows: if row y has length 8 but a floor cell
+** on row y-1 is at column 9, cell_at returns VOID_CELL for that neighbour.
 */
 static int	validate_closed(t_map *map, const char **err_msg)
 {
@@ -256,22 +267,12 @@ static int	validate_closed(t_map *map, const char **err_msg)
 			c = map->grid[y][x];
 			if (c != CHAR_WALL)
 			{
-				/* Check 4 orthogonal neighbours */
-				if (cell_at(map, x, y - 1) == '\0'
-					|| cell_at(map, x, y + 1) == '\0'
-					|| cell_at(map, x - 1, y) == '\0'
-					|| cell_at(map, x + 1, y) == '\0')
+				if (is_void(cell_at(map, x, y - 1))
+					|| is_void(cell_at(map, x, y + 1))
+					|| is_void(cell_at(map, x - 1, y))
+					|| is_void(cell_at(map, x + 1, y)))
 				{
 					*err_msg = "Map is not closed: floor cell exposed to void.";
-					return (-1);
-				}
-				/*
-				** Also verify neighbours are not beyond a shorter row
-				** (rows can have different lengths in .map files).
-				*/
-				if (y == 0 || y == map->height - 1)
-				{
-					*err_msg = "Map is not closed: floor cell on top/bottom edge.";
 					return (-1);
 				}
 			}
