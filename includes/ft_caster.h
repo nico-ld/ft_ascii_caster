@@ -9,6 +9,7 @@
 # include <errno.h>
 # include <math.h>
 # include <termios.h>
+# include <signal.h>
 # include <sys/ioctl.h>
 
 /* ── Compile-time tuning ────────────────────────────────── */

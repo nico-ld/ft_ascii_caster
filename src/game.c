@@ -5,7 +5,7 @@
 **  GAME LOOP
 **
 **  Each iteration:
-**    1. read_input  – non-blocking stdin drain
+**    1. read_input  – non-blocking stdin drain (raw mode, VMIN=0 VTIME=0)
 **    2. update      – apply movement / rotation to g->player
 **    3. render      – cast rays → fill framebuffer
 **    4. flush       – one write() to stdout
@@ -13,15 +13,13 @@
 ** ─────────────────────────────────────────────────────────────────────────────
 */
 
-/* ── Angle utilities ────────────────────────────────────── */
+/* ── Angle conversion ───────────────────────────────────── */
 
 /*
-** init_angle – converts the map spawn direction (N/S/E/W) to radians.
-** Convention: angle 0 = East (+x), angles increase counter-clockwise.
-**   East  → 0
-**   North → π/2   (map row decreases)
-**   West  → π
-**   South → 3π/2  (map row increases)
+** dir_to_angle – converts the map spawn direction to radians.
+** Convention: angle 0 = East (+x), counter-clockwise positive.
+**   East  → 0       West  → π
+**   North → π/2     South → 3π/2
 */
 static double	dir_to_angle(t_dir dir)
 {
@@ -31,15 +29,15 @@ static double	dir_to_angle(t_dir dir)
 		return (3.0 * M_PI / 2.0);
 	if (dir == DIR_WEST)
 		return (M_PI);
-	return (0.0);   /* DIR_EAST */
+	return (0.0);
 }
 
-/* ── Collision helper ───────────────────────────────────── */
+/* ── Collision ──────────────────────────────────────────── */
 
 /*
-** is_wall – returns 1 if world position (wx, wy) is inside a wall or
-** outside the map boundaries.  Used to prevent the player from walking
-** through walls.
+** is_wall – returns 1 if world-space (wx, wy) lands in a wall cell or
+** outside the map grid.  Used for per-axis collision so the player
+** can slide along walls rather than stopping dead.
 */
 static int	is_wall(t_map *map, double wx, double wy)
 {
@@ -58,9 +56,15 @@ static int	is_wall(t_map *map, double wx, double wy)
 /* ── Player update ──────────────────────────────────────── */
 
 /*
-** update_player – applies one frame of input to the player state.
-** Movement uses a small margin (MOVE_SPEED) so the player doesn't
-** clip directly into walls.  Rotation simply adds ±ROT_SPEED to the angle.
+** update_player – applies one frame of input.
+**
+** Rotation: left arrow / A → angle += ROT_SPEED (counter-clockwise = left)
+**           right arrow / D → angle -= ROT_SPEED
+**
+** Movement: W/S along the current facing direction.
+**           Axes are tested independently (wall-sliding collision).
+**
+** Angle is wrapped to [0, 2π) each frame to prevent float drift.
 */
 static void	update_player(t_game *g, t_input *in)
 {
@@ -69,22 +73,17 @@ static void	update_player(t_game *g, t_input *in)
 	double	nx;
 	double	ny;
 
-	/* Rotation */
 	if (in->left)
 		g->player.angle += ROT_SPEED;
 	if (in->right)
 		g->player.angle -= ROT_SPEED;
-
-	/* Keep angle in [0, 2π) to avoid accumulated floating-point drift */
-	if (g->player.angle < 0)
+	if (g->player.angle < 0.0)
 		g->player.angle += 2.0 * M_PI;
 	if (g->player.angle >= 2.0 * M_PI)
 		g->player.angle -= 2.0 * M_PI;
 
-	/* Forward / backward movement */
 	dx = cos(g->player.angle) * MOVE_SPEED;
-	dy = -sin(g->player.angle) * MOVE_SPEED;   /* y-axis inversion */
-
+	dy = -sin(g->player.angle) * MOVE_SPEED;	/* row 0 = top → invert y */
 	if (in->forward)
 	{
 		nx = g->player.x + dx;
@@ -105,14 +104,13 @@ static void	update_player(t_game *g, t_input *in)
 	}
 }
 
-/* ── Cleanup ────────────────────────────────────────────── */
+/* ── Cleanup & signal handling ──────────────────────────── */
 
 /*
-** cleanup – restores terminal, frees all heap memory.
-** Called both on normal exit and on signal.
-** We keep a global pointer so a signal handler can reach it.
+** g_game is a module-level pointer used exclusively by the signal handler.
+** No other code should access it; all normal paths use the local 'g'.
 */
-static t_game	*g_game_ptr = NULL;
+static t_game	*g_game = NULL;
 
 static void	cleanup(t_game *g)
 {
@@ -123,19 +121,37 @@ static void	cleanup(t_game *g)
 	write(STDOUT_FILENO, ANSI_HOME, sizeof(ANSI_HOME) - 1);
 }
 
-/* ── Public: run_game ───────────────────────────────────── */
+/*
+** sig_handler – called on SIGINT (Ctrl+C) or SIGTERM.
+** Restores the terminal so the shell is usable after a forced quit,
+** then exits with code 0.  Only async-signal-safe calls are used here:
+** tcsetattr, write, _exit.
+*/
+static void	sig_handler(int sig)
+{
+	(void)sig;
+	if (g_game)
+		cleanup(g_game);
+	_exit(EXIT_SUCCESS);
+}
+
+/* ── Public entry point ─────────────────────────────────── */
 
 void	run_game(t_game *g)
 {
 	t_input	in;
 
-	g_game_ptr = g;
+	/* Register signal handler before entering raw mode,
+	** so any early Ctrl+C is also caught cleanly.         */
+	g_game = g;
+	signal(SIGINT, sig_handler);
+	signal(SIGTERM, sig_handler);
 
-	/* Initialise live player from parsed map data */
+	/* Copy parsed spawn into the live player and compute facing angle */
 	g->player = g->map.player;
 	g->player.angle = dir_to_angle(g->map.player.dir);
 
-	/* Screen */
+	/* Allocate framebuffer (depends on terminal size) */
 	if (screen_init(&g->screen) < 0)
 	{
 		free_map(&g->map);
@@ -143,10 +159,10 @@ void	run_game(t_game *g)
 		exit(EXIT_FAILURE);
 	}
 
-	/* Raw terminal */
+	/* Switch terminal to raw mode (non-blocking reads, no echo) */
 	term_set_raw(&g->term);
 
-	/* Clear screen once before the loop starts */
+	/* Full clear before first frame so no leftover shell text shows */
 	write(STDOUT_FILENO, ANSI_CLEAR, sizeof(ANSI_CLEAR) - 1);
 
 	while (1)
