@@ -109,8 +109,8 @@ static void	update_player(t_game *g, t_input *in)
 	}
 	if (in->strafe_left)
 	{
-		nx = g->player.x + sx;
-		ny = g->player.y + sy;
+		nx = g->player.x - sx;
+		ny = g->player.y - sy;
 		if (!is_wall(&g->map, nx, g->player.y))
 			g->player.x = nx;
 		if (!is_wall(&g->map, g->player.x, ny))
@@ -118,8 +118,8 @@ static void	update_player(t_game *g, t_input *in)
 	}
 	if (in->strafe_right)
 	{
-		nx = g->player.x - sx;
-		ny = g->player.y - sy;
+		nx = g->player.x + sx;
+		ny = g->player.y + sy;
 		if (!is_wall(&g->map, nx, g->player.y))
 			g->player.x = nx;
 		if (!is_wall(&g->map, g->player.x, ny))
@@ -143,9 +143,6 @@ static void	cleanup(t_game *g)
 void	run_game(t_game *g)
 {
 	t_input	in;
-
-	/* Register signal handler before entering raw mode,
-	** so any early Ctrl+C is also caught cleanly.         */
 
 	/* Copy parsed spawn into the live player and compute facing angle */
 	g->player = g->map.player;
