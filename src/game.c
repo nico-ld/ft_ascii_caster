@@ -58,32 +58,37 @@ static int	is_wall(t_map *map, double wx, double wy)
 /*
 ** update_player – applies one frame of input.
 **
-** Rotation: left arrow / A → angle += ROT_SPEED (counter-clockwise = left)
-**           right arrow / D → angle -= ROT_SPEED
-**
-** Movement: W/S along the current facing direction.
-**           Axes are tested independently (wall-sliding collision).
-**
+** Rotation: left/right arrows → angle ±= ROT_SPEED
+** Forward/backward: W/S along the facing direction.
+** Strafe: A/D perpendicular to the facing direction (angle ± π/2).
+** All movement uses per-axis collision (wall-sliding).
 ** Angle is wrapped to [0, 2π) each frame to prevent float drift.
 */
 static void	update_player(t_game *g, t_input *in)
 {
 	double	dx;
 	double	dy;
+	double	sx;
+	double	sy;
 	double	nx;
 	double	ny;
 
 	if (in->left)
-		g->player.angle += ROT_SPEED;
-	if (in->right)
 		g->player.angle -= ROT_SPEED;
+	if (in->right)
+		g->player.angle += ROT_SPEED;
 	if (g->player.angle < 0.0)
 		g->player.angle += 2.0 * M_PI;
 	if (g->player.angle >= 2.0 * M_PI)
 		g->player.angle -= 2.0 * M_PI;
 
+	/* Forward / backward vector */
 	dx = cos(g->player.angle) * MOVE_SPEED;
-	dy = -sin(g->player.angle) * MOVE_SPEED;	/* row 0 = top → invert y */
+	dy = -sin(g->player.angle) * MOVE_SPEED;
+	/* Strafe vector: perpendicular (rotate facing by -π/2 → right side) */
+	sx = cos(g->player.angle - M_PI / 2.0) * MOVE_SPEED;
+	sy = -sin(g->player.angle - M_PI / 2.0) * MOVE_SPEED;
+
 	if (in->forward)
 	{
 		nx = g->player.x + dx;
@@ -97,6 +102,24 @@ static void	update_player(t_game *g, t_input *in)
 	{
 		nx = g->player.x - dx;
 		ny = g->player.y - dy;
+		if (!is_wall(&g->map, nx, g->player.y))
+			g->player.x = nx;
+		if (!is_wall(&g->map, g->player.x, ny))
+			g->player.y = ny;
+	}
+	if (in->strafe_left)
+	{
+		nx = g->player.x + sx;
+		ny = g->player.y + sy;
+		if (!is_wall(&g->map, nx, g->player.y))
+			g->player.x = nx;
+		if (!is_wall(&g->map, g->player.x, ny))
+			g->player.y = ny;
+	}
+	if (in->strafe_right)
+	{
+		nx = g->player.x - sx;
+		ny = g->player.y - sy;
 		if (!is_wall(&g->map, nx, g->player.y))
 			g->player.x = nx;
 		if (!is_wall(&g->map, g->player.x, ny))

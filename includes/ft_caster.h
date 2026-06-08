@@ -93,10 +93,12 @@ typedef struct s_ray
 /* ── Input flags (bitfield set by read_input) ───────────── */
 typedef struct s_input
 {
-	int	left;
-	int	right;
-	int	forward;
-	int	backward;
+	int	left;         /* rotate left  (arrows)  */
+	int	right;        /* rotate right (arrows)  */
+	int	forward;      /* move forward     (W)   */
+	int	backward;     /* move backward    (S)   */
+	int	strafe_left;  /* strafe left      (A)   */
+	int	strafe_right; /* strafe right     (D)   */
 	int	quit;
 }	t_input;
 

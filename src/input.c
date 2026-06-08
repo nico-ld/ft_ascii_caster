@@ -6,10 +6,10 @@
 ** Key bindings (per spec):
 **   W            → move forward
 **   S            → move backward
-**   A            → rotate left
-**   D            → rotate right
-**   Left  arrow  → rotate left   (ESC [ D)
-**   Right arrow  → rotate right  (ESC [ C)
+**   A            → strafe left
+**   D            → strafe right
+**   Left  arrow  → rotate left   (ESC [ C)
+**   Right arrow  → rotate right  (ESC [ D)
 **   ESC alone    → quit
 **
 ** Arrow keys arrive as a 3-byte escape sequence: 0x1B 0x5B 0x41-0x44.
@@ -56,9 +56,9 @@ void	read_input(t_input *in)
 		else if (buf[i] == 's' || buf[i] == 'S')
 			in->backward = 1;
 		else if (buf[i] == 'a' || buf[i] == 'A')
-			in->left = 1;
+			in->strafe_left = 1;
 		else if (buf[i] == 'd' || buf[i] == 'D')
-			in->right = 1;
+			in->strafe_right = 1;
 		i++;
 	}
 }
