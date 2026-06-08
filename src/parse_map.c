@@ -32,8 +32,8 @@ static char	*read_file(int fd, int *out_len)
 			free(content);
 			return (NULL);
 		}
-		memcpy(tmp, content, total);
-		memcpy(tmp + total, buf, n);
+		ft_memcpy(tmp, content, total);
+		ft_memcpy(tmp + total, buf, n);
 		total += n;
 		tmp[total] = '\0';
 		free(content);
@@ -101,7 +101,7 @@ static char	**split_lines(const char *content, int nb_lines)
 				ft_free_strarr(lines);
 				return (NULL);
 			}
-			memcpy(line, content + start, i - start);
+			ft_memcpy(line, content + start, i - start);
 			/* strip \r if present */
 			if (i - start > 0 && line[i - start - 1] == '\r')
 				line[i - start - 1] = '\0';
@@ -122,7 +122,7 @@ static char	**split_lines(const char *content, int nb_lines)
 			ft_free_strarr(lines);
 			return (NULL);
 		}
-		memcpy(line, content + start, i - start);
+		ft_memcpy(line, content + start, i - start);
 		line[i - start] = '\0';
 		lines[j++] = line;
 	}
@@ -295,7 +295,7 @@ static void	check_extension(const char *path, t_map *map)
 	int	len;
 
 	len = ft_strlen(path);
-	if (len < 5 || strcmp(path + len - 4, ".map") != 0)
+	if (len < 5 || ft_strcmp(path + len - 4, ".map") != 0)
 		error_exit(map, "File must have a .map extension.");
 }
 
@@ -313,7 +313,7 @@ int	parse_map(const char *path, t_map *map)
 	int		y;
 	const char	*err_msg;
 
-	memset(map, 0, sizeof(t_map));
+	ft_memset(map, 0, sizeof(t_map));
 	check_extension(path, map);
 
 	fd = open(path, O_RDONLY);

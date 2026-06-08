@@ -1,22 +1,10 @@
 #include "../includes/ft_caster.h"
 
-/*
-** get_terminal_size – queries the terminal dimensions via TIOCGWINSZ.
-** Falls back to DEFAULT_SCREEN_W x DEFAULT_SCREEN_H if the ioctl fails
-** or returns zero (e.g. when stdout is redirected).
-*/
+
 static void	get_terminal_size(int *w, int *h)
 {
-	struct winsize	ws;
-
 	*w = DEFAULT_SCREEN_W;
 	*h = DEFAULT_SCREEN_H;
-	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0
-		&& ws.ws_col > 0 && ws.ws_row > 0)
-	{
-		*w = (int)ws.ws_col;
-		*h = (int)ws.ws_row;
-	}
 }
 
 /*
@@ -34,7 +22,7 @@ int	screen_init(t_screen *sc)
 	sc->buf = malloc(sc->buf_size);
 	if (!sc->buf)
 		return (-1);
-	memset(sc->buf, ' ', sc->buf_size - 1);
+	ft_memset(sc->buf, ' ', sc->buf_size - 1);
 	sc->buf[sc->buf_size - 1] = '\0';
 	return (0);
 }
@@ -58,7 +46,7 @@ void	screen_clear_buf(t_screen *sc)
 	y = 0;
 	while (y < sc->h)
 	{
-		memset(sc->buf + y * row_stride, ' ', sc->w);
+		ft_memset(sc->buf + y * row_stride, ' ', sc->w);
 		sc->buf[y * row_stride + sc->w]     = '\r';
 		sc->buf[y * row_stride + sc->w + 1] = '\n';
 		y++;

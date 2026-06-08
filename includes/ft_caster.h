@@ -3,14 +3,11 @@
 
 # include <stdio.h>
 # include <stdlib.h>
-# include <string.h>
 # include <fcntl.h>
 # include <unistd.h>
 # include <errno.h>
 # include <math.h>
 # include <termios.h>
-# include <signal.h>
-# include <sys/ioctl.h>
 
 /* ── Compile-time tuning ────────────────────────────────── */
 # define READ_BUF_SIZE      4096
@@ -127,6 +124,9 @@ char	*ft_strdup(const char *s);
 int		ft_strlen(const char *s);
 void	ft_free_strarr(char **arr);
 void	error_exit(t_map *map, const char *msg);
+void	*ft_memset(void *b, int c, int len);
+void	*ft_memcpy(void *dst, const void *src, int n);
+int		ft_strcmp(const char *s1, const char *s2);
 
 /* ── screen.c ───────────────────────────────────────────── */
 int		screen_init(t_screen *sc);

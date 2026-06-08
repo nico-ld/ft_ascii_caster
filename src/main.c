@@ -10,7 +10,7 @@ int	main(int argc, char **argv)
 		write(STDERR_FILENO, "Usage: ./ft_ascii_caster maps/classic.map\n", 42);
 		return (EXIT_FAILURE);
 	}
-	memset(&game, 0, sizeof(t_game));
+	ft_memset(&game, 0, sizeof(t_game));
 	parse_map(argv[1], &game.map);
 	run_game(&game);
 	return (EXIT_SUCCESS);

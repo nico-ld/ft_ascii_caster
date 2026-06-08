@@ -127,13 +127,7 @@ static void	update_player(t_game *g, t_input *in)
 	}
 }
 
-/* ── Cleanup & signal handling ──────────────────────────── */
-
-/*
-** g_game is a module-level pointer used exclusively by the signal handler.
-** No other code should access it; all normal paths use the local 'g'.
-*/
-static t_game	*g_game = NULL;
+/* ── Cleanup ──────────────────────────── */
 
 static void	cleanup(t_game *g)
 {
@@ -144,20 +138,6 @@ static void	cleanup(t_game *g)
 	write(STDOUT_FILENO, ANSI_HOME, sizeof(ANSI_HOME) - 1);
 }
 
-/*
-** sig_handler – called on SIGINT (Ctrl+C) or SIGTERM.
-** Restores the terminal so the shell is usable after a forced quit,
-** then exits with code 0.  Only async-signal-safe calls are used here:
-** tcsetattr, write, _exit.
-*/
-static void	sig_handler(int sig)
-{
-	(void)sig;
-	if (g_game)
-		cleanup(g_game);
-	_exit(EXIT_SUCCESS);
-}
-
 /* ── Public entry point ─────────────────────────────────── */
 
 void	run_game(t_game *g)
@@ -166,9 +146,6 @@ void	run_game(t_game *g)
 
 	/* Register signal handler before entering raw mode,
 	** so any early Ctrl+C is also caught cleanly.         */
-	g_game = g;
-	signal(SIGINT, sig_handler);
-	signal(SIGTERM, sig_handler);
 
 	/* Copy parsed spawn into the live player and compute facing angle */
 	g->player = g->map.player;

@@ -26,7 +26,7 @@ void	read_input(t_input *in)
 	int		n;
 	int		i;
 
-	memset(in, 0, sizeof(t_input));
+	ft_memset(in, 0, sizeof(t_input));
 	n = (int)read(STDIN_FILENO, buf, sizeof(buf));
 	if (n <= 0)
 		return ;

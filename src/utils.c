@@ -21,7 +21,7 @@ char	*ft_strdup(const char *s)
 	dup = malloc(len + 1);
 	if (!dup)
 		return (NULL);
-	memcpy(dup, s, len + 1);
+	ft_memcpy(dup, s, len + 1);
 	return (dup);
 }
 
@@ -79,4 +79,37 @@ void	error_exit(t_map *map, const char *msg)
 		write(STDERR_FILENO, "\n", 1);
 	}
 	exit(EXIT_FAILURE);
+}
+
+
+void	*ft_memset(void *b, int c, int len)
+{
+	unsigned char *p;
+	int i;
+	p = (unsigned char *)b;
+	i = 0;
+	while (i < len)
+		p[i++] = (unsigned char)c;
+	return (b);
+}
+
+void	*ft_memcpy(void *dst, const void *src, int n)
+{
+	unsigned char *d=(unsigned char *)dst;
+	const unsigned char *s=(const unsigned char *)src;
+	int i=0;
+	while (i<n)
+	{
+		d[i]=s[i];
+		i++;
+	}
+	return (dst);
+}
+
+int	ft_strcmp(const char *s1, const char *s2)
+{
+	int i=0;
+	while (s1[i] && s1[i]==s2[i])
+		i++;
+	return ((unsigned char)s1[i] - (unsigned char)s2[i]);
 }
