@@ -61,14 +61,38 @@
 # define COLOR_WEST         "\033[38;5;34m"    /* green   */
 # define COLOR_RESET        "\033[0m"
 
+/*
+** ── Minimap constants ───────────────────────────────────
+**
+** Each map cell is drawn as MINI_CELL_W columns × MINI_CELL_H rows
+** so cells look square (terminals are ~2:1 wide).
+** The minimap is capped at MINI_MAX_COLS × MINI_MAX_ROWS screen cells;
+** it never occupies more than ~¼ of the screen in either dimension.
+** A 1-cell border of spaces surrounds the map for readability.
+*/
+# define MINI_CELL_W    2       /* screen columns per map cell          */
+# define MINI_CELL_H    1       /* screen rows    per map cell          */
+# define MINI_MAX_COLS  30      /* hard cap: minimap columns on screen  */
+# define MINI_MAX_ROWS  15      /* hard cap: minimap rows    on screen  */
+# define MINI_BORDER    1       /* blank-cell border around the map     */
+
+/* Minimap cell colours (ANSI 256-colour background) */
+# define COLOR_MINI_WALL    "\033[48;5;240m"   /* dark grey  bg  */
+# define COLOR_MINI_FLOOR   "\033[48;5;235m"   /* near-black bg  */
+# define COLOR_MINI_PLAYER  "\033[48;5;214m"   /* orange     bg  */
+# define COLOR_MINI_RESET   "\033[0m"
+
 /* ── Wall face ──────────────────────────────────────────── */
 typedef enum e_face
 {
-	FACE_NONE  = 0,
+	FACE_NONE         = 0,
 	FACE_NORTH,
 	FACE_SOUTH,
 	FACE_EAST,
 	FACE_WEST,
+	FACE_MINI_WALL,     /* minimap: wall cell                         */
+	FACE_MINI_FLOOR,    /* minimap: floor cell                        */
+	FACE_MINI_PLAYER,   /* minimap: player position                   */
 }	t_face;
 
 /* ── Player directions (initial facing from map char) ───── */
@@ -182,6 +206,9 @@ void	render_frame(t_game *g);
 
 /* ── input.c ────────────────────────────────────────────── */
 void	read_input(t_input *in);
+
+/* ── minimap.c ──────────────────────────────────────────── */
+void	draw_minimap(t_game *g);
 
 /* ── game.c ─────────────────────────────────────────────── */
 void	run_game(t_game *g);

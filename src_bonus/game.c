@@ -170,6 +170,7 @@ void	run_game(t_game *g)
 		update_player(g, &in);
 		screen_clear_buf(&g->screen);
 		render_frame(g);
+		draw_minimap(g);
 		screen_flush(&g->screen);
 		usleep(FRAME_US);
 	}

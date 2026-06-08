@@ -26,6 +26,7 @@ SRCS_BONUS   = src_bonus/main.c      \
                src_bonus/screen.c    \
                src_bonus/input.c     \
                src_bonus/render.c    \
+               src_bonus/minimap.c   \
                src_bonus/game.c
 
 OBJS_BONUS   = $(SRCS_BONUS:.c=.o)

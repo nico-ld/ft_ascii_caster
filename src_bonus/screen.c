@@ -114,8 +114,9 @@ void	screen_clear_buf(t_screen *sc)
 /* ── colour_for_face ────────────────────────────────────── */
 
 /*
-** Returns the ANSI colour escape string for the given wall face.
+** Returns the ANSI colour escape string for the given cell face.
 ** Returns NULL for FACE_NONE (ceiling/floor – no colour needed).
+** Minimap faces use background colours; wall faces use foreground.
 */
 static const char	*colour_for_face(t_face face)
 {
@@ -127,6 +128,12 @@ static const char	*colour_for_face(t_face face)
 		return (COLOR_EAST);
 	if (face == FACE_WEST)
 		return (COLOR_WEST);
+	if (face == FACE_MINI_WALL)
+		return (COLOR_MINI_WALL);
+	if (face == FACE_MINI_FLOOR)
+		return (COLOR_MINI_FLOOR);
+	if (face == FACE_MINI_PLAYER)
+		return (COLOR_MINI_PLAYER);
 	return (NULL);
 }
 
