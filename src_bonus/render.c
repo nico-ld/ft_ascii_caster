@@ -126,10 +126,36 @@ static t_hit	cast_ray(t_map *map, double px, double py,
 
 /* ── Shade selection ────────────────────────────────────── */
 
-static char	shade_for_dist(double dist)
+/*
+** palette_for_face – returns the 5-char shade string for a given face.
+** Each face has its own character vocabulary; all go dense→sparse so
+** walls feel solid up close and airy at distance.
+**
+**   NORTH (blue)   : # H I i .   vertical strokes
+**   SOUTH (red)    : @ O o c .   rounded shapes
+**   EAST  (yellow) : & $ + - .   symbol progression
+**   WEST  (green)  : W M X x .   wide/blocky to narrow
+*/
+static const char	*palette_for_face(t_face face)
 {
-	const char	palette[] = SHADE_CHARS;
+	if (face == FACE_NORTH)
+		return (SHADE_NORTH);
+	if (face == FACE_SOUTH)
+		return (SHADE_SOUTH);
+	if (face == FACE_EAST)
+		return (SHADE_EAST);
+	return (SHADE_WEST);
+}
 
+/*
+** shade_for_face_dist – picks the character from the face-specific palette
+** that matches the perpendicular distance to the wall.
+*/
+static char	shade_for_face_dist(t_face face, double dist)
+{
+	const char	*palette;
+
+	palette = palette_for_face(face);
 	if (dist < SHADE_D0)
 		return (palette[0]);
 	if (dist < SHADE_D1)
@@ -156,7 +182,7 @@ static t_ray	project_column(t_hit hit, int screen_h)
 	ray.wall_h   = wall_h;
 	ray.wall_top = (screen_h - wall_h) / 2;
 	ray.wall_bot = ray.wall_top + wall_h - 1;
-	ray.shade    = shade_for_dist(hit.dist);
+	ray.shade    = shade_for_face_dist(hit.face, hit.dist);
 	return (ray);
 }
 

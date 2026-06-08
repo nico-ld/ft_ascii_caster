@@ -22,8 +22,12 @@
 # define CHAR_WALL          '1'
 # define CHAR_FLOOR         '0'
 
-/* ── Wall shading palette (near → far) ─────────────────── */
-# define SHADE_CHARS        "@#Ox."
+/* ── Wall shading palettes (near → far, one per face) ──────────
+**  NORTH(blue)=vertical  SOUTH(red)=round  EAST(yellow)=symbol  WEST(green)=wide */
+# define SHADE_NORTH        "#HIi."
+# define SHADE_SOUTH        "@Ooc."
+# define SHADE_EAST         "&$+-."
+# define SHADE_WEST         "WMXx."
 # define SHADE_D0           1.5
 # define SHADE_D1           3.0
 # define SHADE_D2           5.5
