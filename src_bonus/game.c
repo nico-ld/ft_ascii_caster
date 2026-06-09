@@ -167,6 +167,9 @@ void	run_game(t_game *g)
 		read_input(&in);
 		if (in.quit)
 			break ;
+		if (in.toggle_mode)
+			g->screen.render_mode = (g->screen.render_mode + 1)
+				% RENDER_MODE_COUNT;
 		update_player(g, &in);
 		screen_clear_buf(&g->screen);
 		render_frame(g);

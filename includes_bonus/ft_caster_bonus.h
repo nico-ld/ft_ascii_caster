@@ -66,6 +66,23 @@
 # define COLOR_RESET        "\033[0m"
 
 /*
+** Background counterparts (darker shades of the fg hues).
+** Used in render mode 1 (bg-only) and mode 2 (fg+bg combined).
+*/
+# define BGCOL_NORTH        "\033[48;5;17m"    /* dark navy   */
+# define BGCOL_SOUTH        "\033[48;5;88m"    /* dark red    */
+# define BGCOL_EAST         "\033[48;5;136m"   /* dark gold   */
+# define BGCOL_WEST         "\033[48;5;22m"    /* dark green  */
+
+/*
+** RENDER_MODE_COUNT – number of texture modes cycled by the R key.
+**   0  foreground only  : coloured ASCII char, transparent bg
+**   1  background only  : solid colour block (char replaced by space)
+**   2  fg + bg combined : dark bg wash + bright fg on the shade char
+*/
+# define RENDER_MODE_COUNT  3
+
+/*
 ** ── Minimap constants ───────────────────────────────────
 **
 ** Each map cell is drawn as MINI_CELL_W columns × MINI_CELL_H rows
@@ -141,6 +158,7 @@ typedef struct s_screen
 	char	*buf;       /* shade characters, w*h cells                 */
 	t_face	*face_buf;  /* wall face per cell, same dimensions         */
 	int		buf_size;
+	int		render_mode; /* 0=fg only  1=bg only  2=fg+bg             */
 }	t_screen;
 
 /* ── DDA ray result (one per screen column) ─────────────── */
@@ -163,6 +181,7 @@ typedef struct s_input
 	int	backward;
 	int	strafe_left;
 	int	strafe_right;
+	int	toggle_mode;  /* R key – cycle texture render mode           */
 	int	quit;
 }	t_input;
 

@@ -111,14 +111,9 @@ void	screen_clear_buf(t_screen *sc)
 	}
 }
 
-/* ── colour_for_face ────────────────────────────────────── */
+/* ── Colour helpers ─────────────────────────────────────── */
 
-/*
-** Returns the ANSI colour escape string for the given cell face.
-** Returns NULL for FACE_NONE (ceiling/floor – no colour needed).
-** Minimap faces use background colours; wall faces use foreground.
-*/
-static const char	*colour_for_face(t_face face)
+static const char	*fg_for_face(t_face face)
 {
 	if (face == FACE_NORTH)
 		return (COLOR_NORTH);
@@ -128,6 +123,24 @@ static const char	*colour_for_face(t_face face)
 		return (COLOR_EAST);
 	if (face == FACE_WEST)
 		return (COLOR_WEST);
+	return (NULL);
+}
+
+static const char	*bg_for_face(t_face face)
+{
+	if (face == FACE_NORTH)
+		return (BGCOL_NORTH);
+	if (face == FACE_SOUTH)
+		return (BGCOL_SOUTH);
+	if (face == FACE_EAST)
+		return (BGCOL_EAST);
+	if (face == FACE_WEST)
+		return (BGCOL_WEST);
+	return (NULL);
+}
+
+static const char	*minimap_colour(t_face face)
+{
 	if (face == FACE_MINI_WALL)
 		return (COLOR_MINI_WALL);
 	if (face == FACE_MINI_FLOOR)
@@ -137,46 +150,114 @@ static const char	*colour_for_face(t_face face)
 	return (NULL);
 }
 
+/*
+** cell_escape – writes the ANSI prefix for one cell into dst (≤ 64 bytes).
+** Returns the number of bytes written (no NUL terminator added).
+**
+** render_mode for wall faces:
+**   0  – foreground only  → fg colour escape
+**   1  – background only  → bg colour escape
+**   2  – fg + bg          → bg escape concatenated with fg escape
+**
+** Minimap faces always use their background colour (mode-independent).
+** FACE_NONE returns 0: no bytes written, no escape emitted.
+*/
+static int	cell_escape(t_face face, int mode, char *dst)
+{
+	const char	*fg;
+	const char	*bg;
+	const char	*mm;
+	int			len;
+	int			i;
+
+	mm = minimap_colour(face);
+	if (mm)
+	{
+		len = 0;
+		while (mm[len])
+		{
+			dst[len] = mm[len];
+			len++;
+		}
+		return (len);
+	}
+	fg = fg_for_face(face);
+	bg = bg_for_face(face);
+	if (!fg)
+		return (0);
+	len = 0;
+	if (mode == 0)
+	{
+		while (fg[len])
+		{
+			dst[len] = fg[len];
+			len++;
+		}
+		return (len);
+	}
+	if (mode == 1)
+	{
+		while (bg[len])
+		{
+			dst[len] = bg[len];
+			len++;
+		}
+		return (len);
+	}
+	/* mode 2: bg first so fg overrides the foreground colour */
+	i = 0;
+	while (bg[i])
+		dst[len++] = bg[i++];
+	i = 0;
+	while (fg[i])
+		dst[len++] = fg[i++];
+	return (len);
+}
+
+/*
+** display_char – returns the character to draw for a cell.
+** In bg-only mode (1) wall cells become spaces so only the colour block
+** is visible. Minimap cells and all other modes keep their stored char.
+*/
+static char	display_char(t_screen *sc, int cell)
+{
+	t_face	face;
+
+	face = sc->face_buf[cell];
+	if (face == FACE_MINI_WALL || face == FACE_MINI_FLOOR
+		|| face == FACE_MINI_PLAYER)
+		return (sc->buf[cell]);
+	if (sc->render_mode == 1)
+		return (' ');
+	return (sc->buf[cell]);
+}
+
 /* ── screen_flush ───────────────────────────────────────── */
 
 /*
-** screen_flush – moves cursor to home and renders the framebuffer.
+** Renders the framebuffer to stdout one row at a time.
 **
-** For the bonus, every wall cell is wrapped in:
-**     <colour_escape> shade_char \033[0m
-** Ceiling/floor cells (' ', FACE_NONE) are emitted as plain spaces.
+** Per wall cell: <ANSI_prefix> <char> \033[0m
+** Per ceiling/floor cell: plain space (no escape codes).
+** Each row ends with \r\n (raw mode: OPOST is off).
 **
-** We build output row-by-row:
-**   - For each column, check face_buf to decide whether to emit colour.
-**   - At the end of each row, write '\r\n' (raw mode: no OPOST).
-**
-** We avoid a giant pre-built buffer because ANSI codes make the byte
-** count per row variable.  One write() per single character would be
-** too slow; instead we accumulate each row in a stack-allocated line
-** buffer (max width ~300 bytes with escape codes) and flush per row.
-** At 30 fps on an 80-column terminal that's 80*24 = 1920 write calls –
-** in practice we batch the whole row so it's just sc->h writes/frame.
-**
-** Line buffer sizing:
-**   worst case per cell = len(COLOR_NORTH) + 1 + len(COLOR_RESET)
-**                       = 11 + 1 + 4 = 16 bytes
-**   max cols = 500 (generous upper bound)
-**   per row  = 500 * 16 + 2 (\r\n) = 8002 bytes → we use 8192
+** Line buffer sizing (worst case – mode 2 with widest escape strings):
+**   BGCOL (12 bytes) + COLOR (12 bytes) + char (1) + RESET (4) = 29 bytes
+**   500 columns × 29 + 2 (\r\n) = 14502 → rounded up to 16384.
 */
-# define LINE_BUF_SIZE 8192
+# define LINE_BUF_SIZE 16384
 
 void	screen_flush(t_screen *sc)
 {
 	char		line[LINE_BUF_SIZE];
+	char		esc[64];
+	const char	*reset;
+	int			rlen;
+	int			elen;
 	int			x;
 	int			y;
 	int			pos;
 	int			cell;
-	t_face		face;
-	const char	*col;
-	const char	*reset;
-	int			clen;
-	int			rlen;
 
 	reset = COLOR_RESET;
 	rlen = 0;
@@ -191,32 +272,25 @@ void	screen_flush(t_screen *sc)
 		while (x < sc->w)
 		{
 			cell = y * sc->w + x;
-			face = sc->face_buf[cell];
-			col = colour_for_face(face);
-			if (col)
+			elen = cell_escape(sc->face_buf[cell], sc->render_mode, esc);
+			if (elen > 0)
 			{
-				/* wall cell: colour + shade char + reset */
-				clen = 0;
-				while (col[clen])
-					clen++;
-				if (pos + clen + 1 + rlen + 2 < LINE_BUF_SIZE)
+				if (pos + elen + 1 + rlen + 2 < LINE_BUF_SIZE)
 				{
-					ft_memcpy(line + pos, col, clen);
-					pos += clen;
-					line[pos++] = sc->buf[cell];
+					ft_memcpy(line + pos, esc, elen);
+					pos += elen;
+					line[pos++] = display_char(sc, cell);
 					ft_memcpy(line + pos, reset, rlen);
 					pos += rlen;
 				}
 			}
 			else
 			{
-				/* ceiling or floor: plain space */
 				if (pos + 1 < LINE_BUF_SIZE)
 					line[pos++] = sc->buf[cell];
 			}
 			x++;
 		}
-		/* end of row: carriage-return + newline (raw mode) */
 		if (pos + 2 <= LINE_BUF_SIZE)
 		{
 			line[pos++] = '\r';
